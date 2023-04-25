@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import DocumentVerification from "./contracts/DocumentVerification.json";
 
 function App() {
+  // eslint-disable-next-line no-unused-vars
   const [provider, setProvider] = useState(null);
   const [contract, setContract] = useState(null);
   const [documentHash, setDocumentHash] = useState("");
@@ -12,6 +13,7 @@ function App() {
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
+        // eslint-disable-next-line no-unused-vars
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });

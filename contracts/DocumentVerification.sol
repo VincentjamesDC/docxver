@@ -1,10 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.0;
 
-import "./MyIPFSHash.sol"; // import IPFS hash library
+library MyipfsHash {
+    function getHash(string memory _hash) public pure returns (bytes32) {
+        bytes memory hashBytes = bytes(_hash);
+        uint256 hashLength = hashBytes.length;
+        bytes32 hash;
+
+        assembly {
+            hash := mload(add(_hash, 32))
+        }
+
+        return hash;
+    }
+}
 
 contract DocumentVerification {
-    MyIPFSHash public ipfsHash; // declare IPFS hash library variable
+    MyipfsHash public ipfsHash; // declare IPFS hash library variable
 
     struct Document {
         address owner;
@@ -20,7 +32,7 @@ contract DocumentVerification {
     event DocumentVerified(bytes32 documentHash);
 
     constructor(address _ipfsHash) {
-        ipfsHash = MyIPFSHash(_ipfsHash); // initialize IPFS hash library
+        ipfsHash = MyipfsHash(_ipfsHash); // initialize IPFS hash library
     }
 
     function addDocument(bytes32 _documentHash, string memory _ipfsHash) public {

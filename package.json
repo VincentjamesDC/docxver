@@ -8,6 +8,7 @@
     "@testing-library/user-event": "^13.5.0",
     "ipfs-api": "^26.1.2",
     "ipfs-http-client": "^60.0.0",
+    "ipfs-mini": "^1.1.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Web3 from "web3";
 import DocumentVerifier from "./contracts/DocumentVerifier.json";
+import "ipfs-mini"
 
 const App = () => {
   const [documentHash, setDocumentHash] = useState("");

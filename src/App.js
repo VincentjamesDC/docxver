@@ -1,55 +1,77 @@
 import React, { useState } from "react";
 import Web3 from "web3";
-import { create } from "ipfs-http-client";
+import DocumentVerifier from "./contracts/DocumentVerifier.json";
 
-const ipfs = create("https://ipfs.infura.io:5001/api/v0");
-
-const DocumentVerification = ({ contractAddress, abi }) => {
+const App = () => {
+  const [documentHash, setDocumentHash] = useState("");
   const [file, setFile] = useState();
-  const [hash, setHash] = useState();
-  const [status, setStatus] = useState();
+  const [ipfsHash, setIpfsHash] = useState("");
+  const [isUploaded, setIsUploaded] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
-  const web3 = new Web3(Web3.givenProvider);
-  const contract = new web3.eth.Contract(abi, contractAddress);
+  const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 
-  const addDocument = async () => {
-    const buffer = await file.arrayBuffer();
-    const result = await ipfs.add(buffer);
-    const ipfsHash = result.path;
-
-    const accounts = await web3.eth.getAccounts();
-    const hash = await contract.methods
-      .addDocument(web3.utils.soliditySha3(ipfsHash))
-      .send({ from: accounts[0] });
-
-    setHash(hash);
+  const uploadToIPFS = async () => {
+    const IPFS = require("ipfs-mini");
+    const ipfs = new IPFS({ host: "ipfs.infura.io", port: 5001, protocol: "https" });
+    ipfs.add(file, (error, result) => {
+      if (error) {
+        console.error(error);
+        return;
+      }
+      console.log("IPFS hash:", result);
+      setIpfsHash(result);
+      setIsUploaded(true);
+    });
   };
 
   const verifyDocument = async () => {
-    const accounts = await web3.eth.getAccounts();
-    const hash = await contract.methods
-      .verifyDocument(web3.utils.soliditySha3(hash))
-      .send({ from: accounts[0] });
+    const networkId = await web3.eth.net.getId();
+    const deployedNetwork = DocumentVerifier.networks[networkId];
+    const contract = new web3.eth.Contract(
+      DocumentVerifier.abi,
+      deployedNetwork && deployedNetwork.address
+    );
+    const result = await contract.methods.verifyDocument(ipfsHash).call();
+    console.log("Document verified:", result);
+    setIsVerified(result);
+  };
 
-    setStatus("Verified");
+  const onFileSelected = (event) => {
+    const file = event.target.files[0];
+    setFile(file);
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(file);
+    reader.onload = () => {
+      const buffer = Buffer.from(reader.result);
+      setDocumentHash(web3.utils.keccak256(buffer));
+    };
   };
 
   return (
     <div>
-      <h1>Document Verification</h1>
-      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-      <button onClick={addDocument}>Add Document</button>
-      {hash && (
+      <h1>Document Verifier</h1>
+      <div>
+        <h3>Step 1: Select a file to upload</h3>
+        <input type="file" onChange={onFileSelected} />
+        {file && (
+          <div>
+            <p>Selected file: {file.name}</p>
+            <p>Document hash: {documentHash}</p>
+            <button onClick={uploadToIPFS}>Upload to IPFS</button>
+          </div>
+        )}
+      </div>
+      {isUploaded && (
         <div>
-          <p>Document hash: {hash.transactionHash}</p>
-          {!status && (
-            <button onClick={verifyDocument}>Verify Document</button>
-          )}
-          {status && <p>{status}</p>}
+          <h3>Step 2: Verify the document</h3>
+          <p>IPFS hash: {ipfsHash}</p>
+          <button onClick={verifyDocument}>Verify Document</button>
+          {isVerified && <p>Document has been verified!</p>}
         </div>
       )}
     </div>
   );
 };
 
-export default DocumentVerification;
+export default App;

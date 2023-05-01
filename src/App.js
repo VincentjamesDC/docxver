@@ -1,95 +1,104 @@
-//import React, { useState } from "react";
-//import Web3 from "web3";
-//import DocumentVerifier from "./contracts/DocumentVerifier.json";
-const {create}=require("ipfs-http-client")
+import React, { useState } from "react";
+import Web3 from "web3";
+import VendingMachineContract from "./contracts/VendoMachine.json";
 
-async function ipfsClient() {
-  const ipfs = await create(
-    {
-       host: "ipfs.infura.io", port: 5001, protocol: "https"
+const web3 = new Web3(Web3.givenProvider);
+
+function App() {
+  const [accounts, setAccounts] = useState([]);
+  const [contract, setContract] = useState(null);
+  const [itemPrice, setItemPrice] = useState(0);
+  const [stock, setStock] = useState(0);
+  const [balance, setBalance] = useState(0);
+  const [status, setStatus] = useState("");
+
+  const connectWallet = async () => {
+    try {
+      const accounts = await web3.eth.requestAccounts();
+      setAccounts(accounts);
+      const networkId = await web3.eth.net.getId();
+      const deployedNetwork = VendingMachineContract.networks[networkId];
+      const contract = new web3.eth.Contract(
+        VendingMachineContract.abi,
+        deployedNetwork && deployedNetwork.address
+      );
+      setContract(contract);
+      const itemPrice = await contract.methods.itemPrice().call();
+      const stock = await contract.methods.stock().call();
+      setItemPrice(itemPrice);
+      setStock(stock);
+      const balance = await web3.eth.getBalance(contract.options.address);
+      setBalance(balance);
+    } catch (error) {
+      console.error(error);
     }
-  );
-  return ipfs;
-}
-
-async function saveText(){
-  let ipfs = await ipfsClient();
-
- let result = await ipfs.add("hello");
- console.log(result);
-}
-saveText();
-
-/*const App = () => {
-  const [documentHash, setDocumentHash] = useState("");
-  const [file, setFile] = useState();
-  const [ipfsHash, setIpfsHash] = useState("");
-  const [isUploaded, setIsUploaded] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-
-  const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
-
-  const uploadToIPFS = async () => {
-    const IPFS = require("ipfs-http-client");
-    const ipfs = new IPFS({ host: "ipfs.infura.io", port: 5001, protocol: "https" });
-    ipfs.add(file, (error, result) => {
-      if (error) {
-        console.error(error);
-        return;
-      }
-      console.log("IPFS hash:", result);
-      setIpfsHash(result);
-      setIsUploaded(true);
-    });
   };
 
-  const verifyDocument = async () => {
-    const networkId = await web3.eth.net.getId();
-    const deployedNetwork = DocumentVerifier.networks[networkId];
-    const contract = new web3.eth.Contract(
-      DocumentVerifier.abi,
-      deployedNetwork && deployedNetwork.address
-    );
-    const result = await contract.methods.verifyDocument(ipfsHash).call();
-    console.log("Document verified:", result);
-    setIsVerified(result);
+  const buyItem = async () => {
+    try {
+      await contract.methods.buyItem().send({
+        from: accounts[0],
+        value: itemPrice,
+      });
+      const newStock = await contract.methods.stock().call();
+      setStock(newStock);
+      setStatus("Item purchased.");
+    } catch (error) {
+      console.error(error);
+      setStatus("Purchase failed.");
+    }
   };
 
-  const onFileSelected = (event) => {
-    const file = event.target.files[0];
-    setFile(file);
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-    reader.onload = () => {
-      const buffer = Buffer.from(reader.result);
-      setDocumentHash(web3.utils.keccak256(buffer));
-    };
+  const updateStock = async (event) => {
+    event.preventDefault();
+    try {
+      const newStock = parseInt(event.target.elements[0].value);
+      await contract.methods.updateStock(newStock).send({ from: accounts[0] });
+      setStock(newStock);
+      setStatus("Stock updated.");
+    } catch (error) {
+      console.error(error);
+      setStatus("Update failed.");
+    }
+  };
+
+  const withdrawFunds = async () => {
+    try {
+      await contract.methods.withdrawFunds().send({ from: accounts[0] });
+      const balance = await web3.eth.getBalance(contract.options.address);
+      setBalance(balance);
+      setStatus("Funds withdrawn.");
+    } catch (error) {
+      console.error(error);
+      setStatus("Withdrawal failed.");
+    }
   };
 
   return (
     <div>
-      <h1>Document Verifier</h1>
-      <div>
-        <h3>Step 1: Select a file to upload</h3>
-        <input type="file" onChange={onFileSelected} />
-        {file && (
-          <div>
-            <p>Selected file: {file.name}</p>
-            <p>Document hash: {documentHash}</p>
-            <button onClick={uploadToIPFS}>Upload to IPFS</button>
-          </div>
-        )}
-      </div>
-      {isUploaded && (
+      <h1>Vending Machine</h1>
+      {accounts.length === 0 ? (
+        <button onClick={connectWallet}>Connect Wallet</button>
+      ) : (
         <div>
-          <h3>Step 2: Verify the document</h3>
-          <p>IPFS hash: {ipfsHash}</p>
-          <button onClick={verifyDocument}>Verify Document</button>
-          {isVerified && <p>Document has been verified!</p>}
+          <p>Accounts: {accounts[0]}</p>
+          <p>Item Price: {itemPrice} wei</p>
+          <p>Stock: {stock}</p>
+          <p>Contract Balance: {balance} wei</p>
+          <button onClick={buyItem}>Buy Item</button>
+          <form onSubmit={updateStock}>
+            <label>
+              Stock:
+              <input type="number" name="stock" />
+            </label>
+            <button type="submit">Update Stock</button>
+          </form>
+          <button onClick={withdrawFunds}>Withdraw Funds</button>
+          <p>Status: {status}</p>
         </div>
       )}
     </div>
   );
-};
+}
 
-export default App;*/
+export default App;

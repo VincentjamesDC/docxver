@@ -1,9 +1,26 @@
-import React, { useState } from "react";
-import Web3 from "web3";
-import DocumentVerifier from "./contracts/DocumentVerifier.json";
-import "ipfs-mini"
+//import React, { useState } from "react";
+//import Web3 from "web3";
+//import DocumentVerifier from "./contracts/DocumentVerifier.json";
+const {create}=require("ipfs-http-client")
 
-const App = () => {
+async function ipfsClient() {
+  const ipfs = await create(
+    {
+       host: "ipfs.infura.io", port: 5001, protocol: "https"
+    }
+  );
+  return ipfs;
+}
+
+async function saveText(){
+  let ipfs = await ipfsClient();
+
+ let result = await ipfs.add("hello");
+ console.log(result);
+}
+saveText();
+
+/*const App = () => {
   const [documentHash, setDocumentHash] = useState("");
   const [file, setFile] = useState();
   const [ipfsHash, setIpfsHash] = useState("");
@@ -13,7 +30,7 @@ const App = () => {
   const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
 
   const uploadToIPFS = async () => {
-    const IPFS = require("ipfs-mini");
+    const IPFS = require("ipfs-http-client");
     const ipfs = new IPFS({ host: "ipfs.infura.io", port: 5001, protocol: "https" });
     ipfs.add(file, (error, result) => {
       if (error) {
@@ -75,4 +92,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default App;*/

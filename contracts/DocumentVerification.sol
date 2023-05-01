@@ -1,33 +1,42 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
-import "ipfs-mini/src/index.js";
-
-
-contract DocumentVerifier {
-    string public documentHash;
-    IPFS public ipfs;
-
-    constructor() {
-        ipfs = new IPFS("ipfs.infura.io", 5001);
+contract VendingMachine {
+    address payable public owner;
+    uint public itemPrice;
+    uint public stock;
+    
+    event ItemPurchased(address buyer);
+    event StockUpdated(uint stock);
+    
+    constructor(uint _itemPrice, uint _initialStock) {
+        owner = payable(msg.sender);
+        itemPrice = _itemPrice;
+        stock = _initialStock;
     }
-
-    function setDocumentHash(string memory _documentHash) public {
-        documentHash = _documentHash;
+    
+    function buyItem() public payable {
+        require(msg.value >= itemPrice, "Insufficient funds.");
+        require(stock > 0, "Out of stock.");
+        
+        owner.transfer(msg.value);
+        stock--;
+        
+        emit ItemPurchased(msg.sender);
     }
-
-    function uploadDocument(bytes memory _file) public returns (string memory) {
-        (bool success, bytes memory ipfsHash) = address(ipfs).call(abi.encodeWithSignature("add(bytes)", _file));
-        require(success, "IPFS upload failed");
-        return string(ipfsHash);
+    
+    function updateStock(uint _newStock) public {
+        require(msg.sender == owner, "Unauthorized.");
+        
+        stock = _newStock;
+        
+        emit StockUpdated(stock);
     }
-
-    function verifyDocument(string memory _ipfsHash) public view returns (bool) {
-        (bool success,) = address(ipfs).call(abi.encodeWithSignature("cat(string)", _ipfsHash));
-        return success;
+    
+    function withdrawFunds() public {
+        require(msg.sender == owner, "Unauthorized.");
+        
+        owner.transfer(address(this).balance);
     }
 }
-
-
-

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-contract VendingMachine {
+contract VendoMachine {
     address payable public owner;
     uint public itemPrice;
     uint public stock;
